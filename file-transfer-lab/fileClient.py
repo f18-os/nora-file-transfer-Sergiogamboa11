@@ -8,8 +8,9 @@ import params
 
 from framedSock import framedSend, framedReceive
 
+
 switchesVarDefaults = (
-    (('-s', '--server'), 'server', "127.0.0.1:50001"),
+    (('-s', '--server'), 'server', "127.0.0.1:50000"),
     (('-d', '--debug'), "debug", False), # boolean (set if present)
     (('-?', '--usage'), "usage", False), # boolean (set if present)
     (('-p', '--put'), 'file', " ")
@@ -54,7 +55,6 @@ if s is None:
     print('could not open socket')
     sys.exit(1)
 
-
 # If the file that was input by the user exists, we open and read its contents
 # and encode them to send them to server. If the file exists but it its size is 0,
 # we don't send it to the server
@@ -76,6 +76,3 @@ try:
     print("received:", inMessage)
 except socket.error:
     print("Error: Lost connection to Server")
-
-
-
