@@ -27,10 +27,9 @@ lsock.bind(bindAddr)
 lsock.listen(5)
 print("listening on:", bindAddr)
 
-#sock, addr = lsock.accept()
 
-#
-
+# Keeps checking if a Client wants to connect, and when a client
+# connects, it creates a new thread let other clients connect
 
 class ServerThread(Thread):
     requestCount = 0            # one instance / class
@@ -43,11 +42,28 @@ class ServerThread(Thread):
     def run(self):
         while True:
             msg = self.fsock.receivemsg()
+
+            if msg:
+                if "::" in msg.decode("utf-8"):
+                    decodedPayload = msg.decode("utf-8")
+                    fileName = decodedPayload.split('::')[0]
+                    contents = decodedPayload.split('::')[1]
+
+                    directory = os.getcwd() + "/serverFolder/"
+                    filePath = directory + fileName
+                    if not os.path.exists(directory):
+                        os.makedirs(directory)
+                    if not os.path.isfile(filePath):
+                        f = open(filePath, "w")
+                        f.write(contents)
+                    else:
+                        msg = b"File already exists"
+
             if not msg:
                 if self.debug: print(self.fsock, "server thread done")
                 return
             requestNum = ServerThread.requestCount
-            time.sleep(0.001)
+            time.sleep(1)
             ServerThread.requestCount = requestNum + 1
             msg = ("%s! (%d)" % (msg, requestNum)).encode()
             self.fsock.sendmsg(msg)

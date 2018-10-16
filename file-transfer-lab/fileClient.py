@@ -6,7 +6,7 @@ import socket, sys, re, os
 sys.path.append("../lib")       # for params
 import params
 
-from framedSock import framedSend, framedReceive
+from framedSockThread import FramedStreamSock
 
 
 switchesVarDefaults = (
@@ -68,11 +68,8 @@ elif os.path.exists(file) and file!=" ":
 else:
     print("Error: File not found")
     exit()
-outMessageB = bytes(outMessage, encoding= 'utf-8')
+fs = FramedStreamSock(s, debug=debug)
+outMessageB = bytes(outMessage, encoding='utf-8')
 print("sending " + outMessage)
-try:
-    framedSend(s, outMessageB, debug)
-    inMessage = bytes(framedReceive(s, debug).decode("utf-8").replace("\\n", "\n"), encoding= 'utf-8')
-    print("received:", inMessage)
-except socket.error:
-    print("Error: Lost connection to Server")
+fs.sendmsg(outMessageB)
+print("received:", fs.receivemsg())
