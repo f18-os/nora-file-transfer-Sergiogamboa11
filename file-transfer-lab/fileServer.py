@@ -1,7 +1,9 @@
 #! /usr/bin/env python3
 import sys, os
 sys.path.append("../lib")       # for params
-import re, socket, params
+import re, socket, params, time
+from threading import Thread
+from framedSockThread import FramedStreamSock
 
 switchesVarDefaults = (
     (('-l', '--listenPort') ,'listenPort', 50000),
@@ -25,39 +27,33 @@ lsock.bind(bindAddr)
 lsock.listen(5)
 print("listening on:", bindAddr)
 
-sock, addr = lsock.accept()
+#sock, addr = lsock.accept()
 
-print("connection rec'd from", addr)
+#
 
 
-from framedSock import framedSend, framedReceive
+class ServerThread(Thread):
+    requestCount = 0            # one instance / class
 
-# Keeps checking if a Client wants to connect, and when a client
-# connects, it forks the process to let other clients connect
+    def __init__(self, sock, debug):
+        Thread.__init__(self, daemon=True)
+        self.fsock, self.debug = FramedStreamSock(sock, debug), debug
+        self.start()
+
+    def run(self):
+        while True:
+            msg = self.fsock.receivemsg()
+            if not msg:
+                if self.debug: print(self.fsock, "server thread done")
+                return
+            requestNum = ServerThread.requestCount
+            time.sleep(0.001)
+            ServerThread.requestCount = requestNum + 1
+            msg = ("%s! (%d)" % (msg, requestNum)).encode()
+            self.fsock.sendmsg(msg)
+
+
 while True:
-    payload = framedReceive(sock, debug)
-
-    if payload:
-        if "::" in payload.decode("utf-8"):
-            decodedPayload = payload.decode("utf-8")
-            fileName = decodedPayload.split('::')[0]
-            contents = decodedPayload.split('::')[1]
-
-            directory = os.getcwd() + "/serverFolder/"
-            filePath = directory + fileName
-            if not os.path.exists(directory):
-                os.makedirs(directory)
-            if not os.path.isfile(filePath):
-                f = open(filePath, "w")
-                f.write(contents)
-            else:
-                payload = b"File already exists"
-
-    if debug: print("rec'd: ", payload)
-    if not payload:
-        break
-    payload += b"!"
-    try:
-        framedSend(sock, payload, debug)
-    except socket.error:
-        print("Error: Lost connection to Client")
+    sock, addr = lsock.accept()
+    ServerThread(sock, debug)
+    print("connection rec'd from", addr)
